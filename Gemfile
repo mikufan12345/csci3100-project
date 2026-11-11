@@ -70,6 +70,7 @@ end
 gem "devise"
 group :development, :test do
   gem "cucumber-rails", require: false
+  gem "database_cleaner-active_record", require: false
   gem "factory_bot_rails"
   gem "simplecov", require: false
   gem "rspec-rails"

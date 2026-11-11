@@ -1,0 +1,21 @@
+<h1>Games</h1>
+
+<% if @studio %>
+  <p>Signed in to <%= @studio.name %></p>
+  <% if current_user&.role == User::STUDIO_ADMIN %>
+    <%= link_to "New game", new_game_project_path %>
+  <% end %>
+<% else %>
+  <p>You are not signed in.</p>
+  <%= link_to "Sign in", new_user_session_path %>
+<% end %>
+
+<table>
+  <tr><th>Title</th></tr>
+  <% @game_projects.each do |game| %>
+    <tr><td><%= link_to game.title, game_project_path(game) %></td></tr>
+  <% end %>
+</table>
+<% if @game_projects.empty? %>
+  <p>No games yet.</p>
+<% end %>

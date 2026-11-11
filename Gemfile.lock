@@ -132,6 +132,10 @@ GEM
       cucumber (>= 7, < 12)
       railties (>= 6.1, < 9)
     cucumber-tag-expressions (8.1.0)
+    database_cleaner-active_record (2.2.2)
+      activerecord (>= 5.a)
+      database_cleaner-core (~> 2.0)
+    database_cleaner-core (2.1.0)
     date (3.6.0)
     debug (1.11.1)
       irb (~> 1.10)
@@ -378,6 +382,7 @@ DEPENDENCIES
   bootsnap
   capybara
   cucumber-rails
+  database_cleaner-active_record
   debug
   devise
   factory_bot_rails

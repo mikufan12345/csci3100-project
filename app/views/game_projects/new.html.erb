@@ -1,0 +1,17 @@
+<h1>New game</h1>
+
+<%= form_with model: @game_project, url: game_projects_path do |f| %>
+  <p>
+    <%= f.label :title %><br />
+    <%= f.text_field :title %>
+  </p>
+  <%= f.submit "Create game" %>
+<% end %>
+
+<% if @game_project.errors.any? %>
+  <ul>
+    <% @game_project.errors.full_messages.each do |msg| %>
+      <li><%= msg %></li>
+    <% end %>
+  </ul>
+<% end %>
