@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: csci3100-playtest
+    runtime: ruby
+    plan: free
+    buildCommand: bundle install
+    startCommand: bundle exec rails db:prepare && bundle exec puma -C config/puma.rb
+    healthCheckPath: /
+  - type: disk
+    name: csci3100-pg
+    plan: free
+    # Render injects DATABASE_URL into the web service automatically
