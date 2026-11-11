@@ -1,29 +1,33 @@
 class GameProjectsController < ApplicationController
   # StudioIsolationEnforcer comes in via ApplicationController:
   # @studio is already resolved before each action.
+  # Guests are redirected to the sign-in page for every page but the public index.
+  before_action :authenticate_user!, except: [:index]
 
   def index
     @game_projects = @studio ? @studio.game_projects.order(:title) : GameProject.none
   end
 
   def show
-    # Outside the fence -> RecordNotFound -> 404, as if the game doesn't exist
+    # Outside a studio -> RecordNotFound -> 404, as if the game doesn't exist
     @game_project = find_in_studio(GameProject, params[:id])
   end
 
   def new
-    return unless authorize_role!(User::STUDIO_ADMIN)
-    @game_project = @studio.game_projects.build
+    if authorize_role!(User::STUDIO_ADMIN)
+      @game_project = @studio.game_projects.build
+    end
   end
 
   def create
-    return unless authorize_role!(User::STUDIO_ADMIN)
-    @game_project = @studio.game_projects.new(game_params)
+    if authorize_role!(User::STUDIO_ADMIN)
+      @game_project = @studio.game_projects.new(game_params)
 
-    if @game_project.save
-      redirect_to @game_project, notice: "Game created."
-    else
-      render :new, status: :unprocessable_entity
+      if @game_project.save
+        redirect_to @game_project, notice: "Game created."
+      else
+        render :new, status: :unprocessable_entity
+      end
     end
   end
 

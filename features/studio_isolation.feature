@@ -5,6 +5,7 @@ Feature: Studio isolation
   403 that leaks their existence).
 
   Background:
+    # alice = admin of Studio A, bob = admin of Studio B, carol = playtester in Studio A
     Given the studio "Neon Dice Co." exists
     And the studio "Dragon's Lair Designs" exists
     And an admin "alice@example.com" in the studio "Neon Dice Co."
