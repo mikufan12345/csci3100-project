@@ -208,3 +208,30 @@ Checks that were run:
 The implementation commit is `6e0bfc1`. `docs/test_first_process.md` now lists Story 1 with the pass group and leaves the stamp, triage, escalation, archived writes, public-only sessions, immutable comments, title search, and `requires a role` in the fail group. Nothing was pushed. There is no Actions URL. `bin/*` still shows as modified because `core.autocrlf` is true. Those line-ending diffs were left out of the commit.
 
 Left undone: Business Rule 2's stamp, Story 2's public-only sessions and immutable comments, Story 3 triage, Business Rules 3 and 4, title search, seeds, the README SHA write-up, and Render. `render.yaml` still does not point at managed Postgres. `requires a role` stays red.
+
+## 2026-11-25 — Story 2 (work-plan slice 3)
+
+Requested work: do Story 2. A playtester logs a session on the public rulebook and submits feedback. The 30-minute and 2-scenario gate was already green in `33179ca`. Business Rule 2, triage, escalation, and the archived-write freeze stay unimplemented.
+
+What was added:
+
+- `PlaytestSession` rejects a version whose status is not public, and a version whose game belongs to another studio. A session below the feedback gate still saves. The playtime freeze is unchanged.
+- `Feedback` requires comments. Severity must be 0, 1, or 2. An omitted severity defaults to 0 so the older play-gate examples still build a row. `Feedback.new(severity: nil)` stays nil and is invalid. The module must already be included in the session's version.
+- A later save that changes comments adds `Comments cannot change after submission` and does not persist. Status can still change on that model, which is why the archived-status example stays red.
+- `PATCH /feedbacks/:id` loads the row through the studio. It assigns a posted comment so the model can reject it. It does not assign status, severity, or priority. `GET /feedbacks` is still absent.
+- A failed session create renders the game's real public version, so a draft post does not present the draft summary as the current rules.
+- `feedback!` includes the feedback's module on that version before `create!`, so the later-slice examples still fail on their own expectation. `spec/models/feedback_spec.rb` includes Combat in the version and leaves Magic out. The assertions were not changed.
+
+Checks that were run:
+
+- `bundle exec rspec spec/models/feedback_spec.rb spec/models/playtest_session_spec.rb`: 14 examples, 2 failures. The failures are `refuses a status change once the version is archived` (expected 0, got 1) and `does not let a caller set escalated priority on a lone report` (expected 0, got 1).
+- `bundle exec cucumber features/log_session_and_feedback.feature features/session_validation.feature features/publish_rulebook.feature features/archived_feedback_readonly.feature`: 26 scenarios (3 failed, 23 passed), 368 steps (3 failed, 4 skipped, 361 passed), 0m14.961s, exit 1. The three failures are the archived verdict and archived playtime scenarios. `log_session_and_feedback`, `session_validation`, and `publish_rulebook` are not in that failure list.
+- Full `bundle exec rspec`: Finished in 1.65 seconds (files took 6.13 seconds to load). 47 examples, 13 failures, exit 1. The 13 are the archived status change, the posted priority, `requires a role`, the triage list (404, expected 403), the arbiter verdict (status got 0, expected 1), six `Escalation` examples (`uninitialized constant Escalation`), and the two Business Rule 2 stamp examples (expected 3, got 0).
+- Full `bundle exec cucumber`: 61 scenarios (23 failed, 38 passed), 909 steps (23 failed, 46 skipped, 840 passed), 0m35.106s, exit 1. The 23 failures are three archived scenarios (403 expected, got 200, and `ActiveRecord::RecordNotFound` when an admin patches another user's session), eight priority-escalation scenarios, two re-evaluation scenarios (status got 0, expected 3), title search, and nine triage scenarios. `Posted comments on archived feedback do not stick` passed because the update writes neither the comment nor a verdict. That is not the archive freeze. The other three scenarios in that feature stay red.
+- `bundle exec rake test:all` was not run as one command. The two commands it wraps were run separately, and both exited 1 because later slices are still red.
+- Rack again printed `Status code :unprocessable_entity is deprecated`. Controllers still use `:unprocessable_entity`. The status is still 422.
+- No browser tool was available. The same forms were submitted with HTTP against `bin/rails server` on `127.0.0.1:3000`, signed in as `story2@example.com` in Story Two Studio. The game page returned 200, showed `Current public rules.`, and did not show `Unreleased draft rules.`. Logging 40 minutes and 2 scenarios returned 302. Submitting `The combat round runs too long.` on Combat with severity high returned 302. The database then had one session on version 1 (status 1, 40 minutes, 2 scenarios) and one feedback row (status 0, severity 2, module Combat, that sentence). A post of the same session onto the draft version returned 422 and left the session count at 1. `PATCH /feedbacks/1` with a new sentence returned 422 and the body `Comments cannot change after submission`. The stored sentence was unchanged. A feedback post for Magic, which is not in the public version, returned 422 and left the feedback count at 1. Story Two Studio and `story2@example.com` were deleted afterward. The server was stopped.
+
+The implementation commit is `b213a97`. Nothing was pushed. There is no Actions URL. `bin/*` still shows as modified because `core.autocrlf` is true. Those line-ending diffs were left out of the commit.
+
+Left undone: Business Rule 2's stamp, Story 3 triage, Business Rules 3 and 4, title search, seeds, the README SHA write-up, and Render. `render.yaml` still does not point at managed Postgres. `requires a role` stays red. A posted priority stays 1, and a status change on an archived row still saves.
