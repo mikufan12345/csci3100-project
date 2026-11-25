@@ -18,7 +18,7 @@ Both layers stay. Cucumber proves the path a player or arbiter uses. RSpec prove
 4. Run the whole suite. Earlier green scenarios must stay green.
 5. Commit the implementation. Message: `feat: <same story or rule>`.
 
-Business Rule 1 is the iteration the README will cite. Its red side is `features/session_validation.feature` and the playtime examples in `spec/models/feedback_spec.rb`. Its green side will be the validation, in a later commit. The tenancy work in `c8dcdf9` landed tests and code together, so it is not this example.
+Business Rule 1 is the iteration the README will cite. Its red side is `803628e` (`features/session_validation.feature` and the playtime examples in `spec/models/feedback_spec.rb`). Its green side is `33179ca`. The tenancy work in `c8dcdf9` landed tests and code together, so it is not this example. The run record is `docs/work_log.md`.
 
 ## What was added
 
@@ -51,7 +51,7 @@ Givens create records directly so a scenario fails on the rule it names. Whens u
 
 ## Commands
 
-PostgreSQL has to be running. `config/database.yml` on this Windows machine needs `host: localhost` under `development` and `test`.
+PostgreSQL has to be running. `config/database.yml` sets `host: localhost` in the `default` block. On this machine the server is the portable PostgreSQL 16.11 tree under `%LOCALAPPDATA%\pgsql`, started with `postgres.exe -D %LOCALAPPDATA%\pgsql\data`. There is no Windows service. The checked results are in `docs/work_log.md`.
 
 ```text
 bin/rspec
@@ -64,29 +64,26 @@ bundle exec rake test:all
 
 GitHub Actions runs the same two commands on every push. Cucumber is no longer marked `continue-on-error`. A red scenario fails the workflow. That is the red baseline. Do not put `continue-on-error` back to make the badge green.
 
-The author could not execute the suite here: nothing was accepting connections on `localhost:5432`. Syntax of the new Ruby files was checked, and the Cucumber dry run matched every step. The pass/fail split below is from reading the current models against the examples, not from a green run. Re-run both commands once Postgres is up and treat that output as the record.
+Before PostgreSQL was available, the Cucumber dry run matched every step and the pass/fail split below was read from the models. On 2026-11-25 the Business Rule 1 files were executed against PostgreSQL. `features/session_validation.feature` passed. The whole `rake test:all` suite was not run. Later slices in the list below are still red. Quote `docs/work_log.md` for the commands and the counts.
 
 ## What should already pass
 
 These lock behavior that is already in the app. If one of them fails, fix the test harness or a regression. Do not delete it.
 
 - `spec/models/user_spec.rb`: founding a studio, joining one, blank studio name, known roles, and a posted admin role that still saves as playtester.
-- `spec/models/playtest_session_spec.rb`: a session of 10 minutes and 0 scenarios can be stored.
-- `spec/models/feedback_spec.rb`: a feedback row with comments and a session saves. This does not yet prove the 30-minute gate.
+- `spec/models/playtest_session_spec.rb`: a session of 10 minutes and 0 scenarios can be stored. After feedback exists, playtime and scenario count stay frozen.
+- `spec/models/feedback_spec.rb`: 30 minutes and 2 scenarios saves. Under 30 minutes is rejected with `Playtime must be at least 30 minutes.` Under 2 scenarios is rejected with `At least 2 scenarios must be completed.`
 - `spec/models/rulebook_version_spec.rb`: a draft can sit beside one public version.
 - `spec/requests/game_projects_spec.rb`: another studio's game is 404, and a playtester who posts a game is 403.
 - `features/studio_isolation.feature`: the four original scenarios (own games, foreign 404, playtester 403, admin create).
 
 ## What should fail until the code exists
 
-A failure is the point. The first error is often `unknown attribute` or `uninitialized constant`, because `summary`, `severity`, `priority`, `RulebookInclusion`, `Escalation`, and `PublishRulebookVersion` are not in the app yet. After the migration and the empty class exist, the same example must fail on the expectation (the status did not change, the row was stored, the response was 404 instead of 403). Only then does the real rule get written.
-
-Do not rescue those errors in the specs. Do not drop `severity:` from an example to make it load.
+A failure is the point. `summary`, `severity`, `priority`, and `RulebookInclusion` now exist, because the Business Rule 1 scenarios needed them. `Escalation` and `PublishRulebookVersion` still do not. Where a column exists and the rule does not, the example must fail on the expectation, not on `unknown attribute`. Do not rescue those errors. Do not drop `severity:` from an example to make it load.
 
 Expected red groups:
 
-- BR1 messages `Playtime must be at least 30 minutes.` and `At least 2 scenarios must be completed.`
-- Blank game title, required role, second public version, frozen summary, frozen playtime, frozen comments.
+- Blank game title, required role, second public version, frozen summary, frozen comments.
 - Sessions on a draft, an archived version, or another studio's version.
 - `PublishRulebookVersion.new(version:, deprecate_module_ids:, replacements:).call`
 - Escalation after the third distinct playtester, and not before.
@@ -117,14 +114,13 @@ Status numbers, unchanged from the proposal: feedback `unreviewed` 0, `valid_bug
 
 `PublishRulebookVersion` is the only object the publish specs construct. Escalation is observed by saving feedback, not by calling a service from the spec, so the callback and the controller can share one implementation.
 
-## How to turn BR1 green
+## Business Rule 1 is green
 
-This is the shape of every later slice, and it is the one the README must describe with two commit SHAs.
+This is the shape every later slice follows, and it is the pair the README must describe.
 
-1. Run `bin/rspec spec/models/feedback_spec.rb` and `bundle exec cucumber features/session_validation.feature`. Confirm they fail.
-2. Commit if this red baseline is not committed yet.
-3. Add the feedback validation and the two exact sentences. A session below the gate still saves. After a feedback row exists, playtime and scenario count do not change.
-4. Re-run those two files, then `bundle exec rake test:all`.
-5. Commit the validation. In the README, name Story 2, BR1, the red SHA, the green SHA, the two commands, and the Actions URL of the green commit.
+1. The red run failed on the missing gate. The red commit is `803628e`.
+2. The validation uses the two exact sentences. A session below the gate still saves. After a feedback row exists, playtime and scenario count do not change.
+3. `features/session_validation.feature` then passed. The green commit is `33179ca`. It was not pushed, so there is no Actions URL yet.
+4. The README still has to name Story 2, BR1, both SHAs, the two commands, and the Actions URL of the green commit after it is pushed.
 
-Leave the other features red. Do not implement publish, triage, and escalation in that same commit.
+`bundle exec rake test:all` was not run for this slice. Publish, triage, and escalation stay unimplemented. The counts and the commands are in `docs/work_log.md`.

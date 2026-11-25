@@ -35,7 +35,8 @@ The build specification is `docs/refined_proposal.md`. This file is the short fo
 - Ruby idiomatic, no `eval`, no `system()`. ActiveRecord for data access.
 - Services (publish, BR2, BR3) live in `app/services/` as plain classes with a `call` method.
 - Testing is test-first. For each story and each business rule: add a failing Cucumber feature and failing RSpec examples, commit them, then implement, then commit the green code. One feature file per user story and per business rule.
-- The README's TDD/BDD example is BR1: the red commit SHA, then the green commit SHA.
+- The README's TDD/BDD example is BR1. The red commit is `803628e`. The green commit is `33179ca` (local until it is pushed). The README does not cite them yet.
+- Work record: after every slice, append an entry to the bottom of `docs/work_log.md` before the task is finished. Read the latest entries before changing the same area. The entry names the date, what was asked, the files changed, why, the commands that were run and the result they printed, the commit SHA and whether it was pushed, and what was left failing or undone. Record a check only when it was run. If a check was skipped, say so. Do not invent a pass, a SHA, or an Actions URL.
 - Target >=80% SimpleCov line coverage of `app/`. `bin/rspec` and `bundle exec cucumber` must both pass. CI must fail when either fails. Do not set `continue-on-error` on Cucumber.
 - Nothing merges red.
 
