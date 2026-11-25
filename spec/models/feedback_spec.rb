@@ -11,6 +11,12 @@ RSpec.describe Feedback, type: :model do
   let(:version) { version!(game, number: 1, status: 1) }
   let(:qualified) { session!(playtester, version, minutes: 30, scenarios: 2) }
 
+  # The play-gate examples use Combat. Magic stays out of the version so the
+  # inclusion example still has a module to reject.
+  before do
+    RulebookInclusion.create!(rulebook_version: version, rule_module: rule_module)
+  end
+
   def build_feedback(session, comments, **attrs)
     Feedback.new({
       playtest_session: session,

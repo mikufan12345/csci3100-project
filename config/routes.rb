@@ -12,6 +12,7 @@ Rails.application.routes.draw do
   resources :playtest_sessions, only: [:update] do
     resources :feedbacks, only: [:create]
   end
+  resources :feedbacks, only: [:update]
   root "game_projects#index"
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

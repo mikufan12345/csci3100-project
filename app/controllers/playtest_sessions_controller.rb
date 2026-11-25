@@ -12,7 +12,7 @@ class PlaytestSessionsController < ApplicationController
       redirect_to game_project_path(version.game_project)
     else
       @game_project = version.game_project
-      @public_version = version
+      @public_version = @game_project.rulebook_versions.find_by(status: 1)
       @feedback = nil
       render "game_projects/show", status: :unprocessable_entity
     end

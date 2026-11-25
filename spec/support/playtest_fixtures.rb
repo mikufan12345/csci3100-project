@@ -39,6 +39,11 @@ module PlaytestFixtures
   end
 
   def feedback!(session, rule_module, comments:, status: 0, severity: nil, priority: nil)
+    version = session.rulebook_version
+    unless version.rule_modules.exists?(id: rule_module.id)
+      RulebookInclusion.create!(rulebook_version: version, rule_module: rule_module)
+    end
+
     attributes = {
       playtest_session: session,
       rule_module: rule_module,
