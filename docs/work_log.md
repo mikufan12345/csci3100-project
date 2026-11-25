@@ -150,4 +150,31 @@ Requested work: write down the steps already taken, so a report or an explanatio
 - Corrected `docs/test_first_process.md` where it still said the gate was unproven and that PostgreSQL had never been reached.
 - Added the work-record rule to `AGENTS.md`, and recorded the two Business Rule 1 SHAs there.
 
-No tests were run for this documentation pass. Nothing was pushed. `33179ca` is still the unpushed green commit. The commit that adds this file is the documentation commit.
+No tests were run for this documentation pass. Nothing was pushed. `33179ca` is still the unpushed green commit. The documentation commit is `3090a69`.
+
+## 2026-11-25 — Accounts (work-plan slice 1)
+
+Requested work: commit the work record, then do the next unfinished slice. Slice 1 is studio membership. The red scenarios were already in `803628e`. They were confirmed red before this implementation: `bundle exec cucumber features/membership.feature` reported 8 scenarios, 8 failed. The sign-up page had no "Studio name" field, a direct registration did not create the user, and `PATCH /studio_members/:id` had no route.
+
+What was added:
+
+- The sign-up form has Email, Studio name, Password, Password confirmation, and the button "Sign up". Devise is permitted to store `studio_name` and is not permitted to store `role`.
+- A blank studio name is rejected by the existing model check. A new studio name makes that user the studio admin. A name that matches an existing studio, ignoring case, joins as playtester. A posted role of 2 on that join is ignored. The development log recorded `Unpermitted parameter: :role` and the inserted role was 0.
+- `StudioMembersController#update` loads the member with `find_in_studio`, then `authorize_role!(User::STUDIO_ADMIN)`. A playtester gets 403. Another studio's id gets 404. The admin cannot change their own role and cannot grant `studio_admin`. `playtester` and `arbiter` are the only accepted values. The games page lists same-studio members and shows that form to the admin. The layout has a Sign out button for a signed-in user.
+- On Windows, Sprockets' file cache rename was denying permission while rendering a page in development. `config/environments/development.rb` uses a memory cache for assets on Windows, the same workaround already used in the test environment.
+
+Checks that were run:
+
+- `bundle exec cucumber features/membership.feature`: 8 scenarios, 8 passed.
+- `bundle exec rspec spec/models/user_spec.rb` and the cross-studio example in `spec/requests/permissions_spec.rb`: 7 examples, 1 failure. The failure is `User roles requires a role`. `allow_nil: true` is still on the role validation. That example was left red. The other six passed, including founding, joining, and ignoring a posted admin role.
+- `bundle exec cucumber features/studio_isolation.feature features/session_validation.feature`: 11 scenarios, 9 passed, 2 failed. The failures are the blank game title and the title search. Business Rule 1's five scenarios passed. The four original isolation scenarios passed.
+- `bundle exec rspec spec/requests/game_projects_spec.rb` lines for the foreign game and the playtester create: 2 examples, 0 failures.
+- Full `bundle exec rspec`: 47 examples, 30 failures, exit 1. The new failure is not from this slice. `requires a role` is still the only user-spec failure. The other failures are blank titles, draft and archived sessions, publish, triage, and escalation.
+- Full `bundle exec cucumber`: 61 scenarios, 20 passed, 41 failed, exit 1. Membership is in the 20 that passed. Publish, triage, re-evaluation, escalation, archived writes, blank titles, and title search stay red.
+- `bundle exec rake test:all` was not run as one command. The two commands it wraps were run separately, and both exited 1 because later slices are still red.
+- No browser tool was available. The same forms were submitted with HTTP against `bin/rails server` on `127.0.0.1:3000`. The sign-up page returned 200 and contained "Studio name". A blank studio name returned 422 and created no user. Founding "Slice One Studio" redirected to the games page, which showed Sign out, Studio members, and the founder's email. Sign out returned to the page with Sign in. A second registration for "slice one studio" that also posted `user[role]=2` stored role 0 and did not show "Save role". Signing back in as the founder and saving role `arbiter` redirected to the games page. The database then had the founder at role 2 and the joiner at role 1, both in Slice One Studio. Those two users and that studio were deleted afterward.
+- The first development request before the memory-cache change returned 500: `Permission denied @ rb_file_s_rename` under `tmp/cache/assets`. After the change, the same page returned 200.
+
+The implementation commit is `ade3ef5`. The documentation commit from the previous entry is `3090a69`. `33179ca` and these two commits are local. Nothing was pushed. There is no Actions URL.
+
+Left undone: role is still optional when a studio is assigned directly (`requires a role` stays red). Story 1 publish, Story 3 triage, Business Rules 2, 3, and 4, title search, seeds, the README SHA write-up, and Render are not this slice. `render.yaml` still does not point at managed Postgres.
