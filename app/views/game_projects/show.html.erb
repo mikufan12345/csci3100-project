@@ -8,6 +8,51 @@
     </p>
     <%= f.submit "Save game" %>
   <% end %>
-<% else %>
-  <p><%= @game_project.title %></p>
+<% end %>
+
+<% if @public_version %>
+  <h2>Public rulebook</h2>
+  <p><%= @public_version.summary %></p>
+  <ul>
+    <% @public_version.rule_modules.each do |rule_module| %>
+      <li><%= rule_module.title %></li>
+    <% end %>
+  </ul>
+
+  <%= form_with url: rulebook_version_playtest_sessions_path(@public_version), scope: :playtest_session, data: { turbo: false } do |f| %>
+    <p>
+      <%= f.label :playtime_minutes, "Playtime minutes" %><br />
+      <%= f.number_field :playtime_minutes %>
+    </p>
+    <p>
+      <%= f.label :scenarios_completed, "Scenarios completed" %><br />
+      <%= f.number_field :scenarios_completed %>
+    </p>
+    <%= f.submit "Log session" %>
+  <% end %>
+
+  <% if @session && @feedback %>
+    <%= form_with model: @feedback, url: playtest_session_feedbacks_path(@session), data: { turbo: false } do |f| %>
+      <% if @feedback.errors.any? %>
+        <ul>
+          <% @feedback.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      <% end %>
+      <p>
+        <%= f.label :rule_module_id, "Rule module" %><br />
+        <%= f.select :rule_module_id, @public_version.rule_modules.map { |rule_module| [rule_module.title, rule_module.id] } %>
+      </p>
+      <p>
+        <%= f.label :severity, "Severity" %><br />
+        <%= f.select :severity, [["low", 0], ["medium", 1], ["high", 2]] %>
+      </p>
+      <p>
+        <%= f.label :comments, "Comments" %><br />
+        <%= f.text_area :comments %>
+      </p>
+      <%= f.submit "Submit feedback" %>
+    <% end %>
+  <% end %>
 <% end %>

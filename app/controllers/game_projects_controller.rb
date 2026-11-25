@@ -11,6 +11,13 @@ class GameProjectsController < ApplicationController
   def show
     # Outside a studio -> RecordNotFound -> 404, as if the game doesn't exist
     @game_project = find_in_studio(GameProject, params[:id])
+    return if @game_project.nil?
+
+    @public_version = @game_project.rulebook_versions.find_by(status: 1)
+    return if @public_version.nil?
+
+    @session = current_user.playtest_sessions.where(rulebook_version: @public_version).order(:id).last
+    @feedback = @session.feedbacks.build if @session
   end
 
   def new

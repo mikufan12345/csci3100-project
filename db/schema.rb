@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_11_11_134837) do
+ActiveRecord::Schema[7.1].define(version: 2026_11_25_174500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -21,6 +21,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_11_134837) do
     t.text "comments"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "severity"
+    t.integer "priority", default: 0, null: false
     t.index ["playtest_session_id"], name: "index_feedbacks_on_playtest_session_id"
     t.index ["rule_module_id"], name: "index_feedbacks_on_rule_module_id"
   end
@@ -53,12 +55,23 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_11_134837) do
     t.index ["game_project_id"], name: "index_rule_modules_on_game_project_id"
   end
 
+  create_table "rulebook_inclusions", force: :cascade do |t|
+    t.bigint "rulebook_version_id", null: false
+    t.bigint "rule_module_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["rule_module_id"], name: "index_rulebook_inclusions_on_rule_module_id"
+    t.index ["rulebook_version_id", "rule_module_id"], name: "index_rulebook_inclusions_on_version_and_module", unique: true
+    t.index ["rulebook_version_id"], name: "index_rulebook_inclusions_on_rulebook_version_id"
+  end
+
   create_table "rulebook_versions", force: :cascade do |t|
     t.bigint "game_project_id", null: false
     t.integer "version_number"
     t.integer "status"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "summary"
     t.index ["game_project_id"], name: "index_rulebook_versions_on_game_project_id"
   end
 
@@ -89,6 +102,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_11_134837) do
   add_foreign_key "playtest_sessions", "rulebook_versions"
   add_foreign_key "playtest_sessions", "users"
   add_foreign_key "rule_modules", "game_projects"
+  add_foreign_key "rulebook_inclusions", "rule_modules"
+  add_foreign_key "rulebook_inclusions", "rulebook_versions"
   add_foreign_key "rulebook_versions", "game_projects"
   add_foreign_key "users", "studios"
 end

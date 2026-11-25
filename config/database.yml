@@ -18,6 +18,9 @@ default: &default
   # For details on connection pooling, see Rails configuration guide
   # https://guides.rubyonrails.org/configuring.html#database-pooling
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  # Windows has no Unix sockets, so the local server is reached over TCP.
+  # CI sets DATABASE_URL, which overrides this host.
+  host: localhost
 
 development:
   <<: *default

@@ -28,6 +28,12 @@ Rails.application.configure do
   config.action_controller.perform_caching = false
   config.cache_store = :null_store
 
+  # Sprockets' file cache rename fails on Windows when tmp/cache is locked.
+  # Tests do not need that cache.
+  config.assets.configure do |env|
+    env.cache = ActiveSupport::Cache.lookup_store(:memory_store)
+  end
+
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable
 
