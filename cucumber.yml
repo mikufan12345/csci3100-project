@@ -1,0 +1,2 @@
+default: --publish-quiet --strict --require features
+dryrun: --dry-run --publish-quiet --strict --require features/support --require features/step_definitions --require features/studio_isolation_steps.rb

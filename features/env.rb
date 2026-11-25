@@ -11,13 +11,23 @@ require "factory_bot"
 FactoryBot.definition_file_paths = [Rails.root.join("test", "factories")]
 FactoryBot.reload
 
-include FactoryBot::Syntax::Methods
+require "minitest"
+module CucumberAssertions
+  include Minitest::Assertions
+  attr_accessor :assertions
+end
 
-# Sign-in helper for steps: `login_as(user, scope: :user)` in step definitions.
-# (Devise 5 dropped the old IntegrationHelpers API, so we drive Warden directly.)
+# Step bodies run on the Cucumber World, so helpers have to be mixed in there.
+# Devise 5 dropped IntegrationHelpers; login_as comes from Warden's test mode.
 require "warden/test/helpers"
-include Warden::Test::Helpers
-Before { Warden.test_mode! }
+World(CucumberAssertions)
+World(FactoryBot::Syntax::Methods)
+World(Warden::Test::Helpers)
+
+Before do
+  self.assertions = 0
+  Warden.test_mode!
+end
 After { Warden.test_reset! }
 
 # Clean the database before and after every scenario (DatabaseCleaner drives

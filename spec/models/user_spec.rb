@@ -36,5 +36,20 @@ RSpec.describe User, type: :model do
       user.role = 99
       expect(user).not_to be_valid
     end
+
+    it "requires a role" do
+      studio = Studio.create!(name: "Role Studio")
+      user = User.new(email: "norole@example.com", password: "hunter22", studio: studio, role: nil)
+      expect(user).not_to be_valid
+    end
+
+    it "keeps a joining registrant as a playtester when they post an admin role" do
+      Studio.create!(name: "Neon Dice Co.")
+      user = User.new(email: "late@example.com", password: "hunter22",
+                      studio_name: "Neon Dice Co.", role: User::STUDIO_ADMIN)
+      user.save!
+      expect(user.role).to eq(User::PLAYTESTER)
+      expect(user.studio.name).to eq("Neon Dice Co.")
+    end
   end
 end

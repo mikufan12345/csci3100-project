@@ -36,4 +36,3 @@ jobs:
         run: bin/rspec --format progress
       - name: Cucumber
         run: bundle exec cucumber
-        continue-on-error: true # flip to false once features are written

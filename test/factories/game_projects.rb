@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :game_project do
-    studio { nil }
-    title { "MyString" }
+    studio
+    sequence(:title) { |n| "Game #{n}" }
   end
 end

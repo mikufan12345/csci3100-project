@@ -31,3 +31,16 @@ Feature: Studio isolation
   Scenario: A studio admin can create a game in their own studio
     When alice signs in and creates the game "Kaiju Dice"
     Then the studio "Neon Dice Co." lists a game "Kaiju Dice"
+
+  Scenario: A blank game title is rejected
+    When alice signs in and creates the game ""
+    Then the studio "Neon Dice Co." does not list a game ""
+
+  Scenario: Game search stays inside the studio and filters by title
+    Given the studio "Neon Dice Co." has a game "Gloomhaven Remix"
+    And the studio "Neon Dice Co." has a game "Quiet Dice"
+    And the studio "Dragon's Lair Designs" has a game "Lorebreakers"
+    When "alice@example.com" searches games for "Quiet"
+    Then she sees "Quiet Dice"
+    And she does not see "Gloomhaven Remix"
+    And she does not see "Lorebreakers"

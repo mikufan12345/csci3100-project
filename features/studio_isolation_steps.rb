@@ -12,6 +12,10 @@ Given("a playtester {string} in the studio {string}") do |email, name|
   FactoryBot.create(:user, email: email, studio: Studio.find_by!(name: name))
 end
 
+Given("an arbiter {string} in the studio {string}") do |email, name|
+  FactoryBot.create(:arbiter, email: email, studio: Studio.find_by!(name: name))
+end
+
 Given("the studio {string} has a game {string}") do |name, title|
   FactoryBot.create(:game_project, title: title, studio: Studio.find_by!(name: name))
 end
