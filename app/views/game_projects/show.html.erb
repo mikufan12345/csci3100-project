@@ -1,12 +1,26 @@
 <% content_for :title, @game_project.title %>
 <h1><%= @game_project.title %></h1>
 <% if current_user&.role == User::STUDIO_ADMIN %>
-  <%= form_with model: @game_project do |f| %>
+  <h2>Draft</h2>
+  <%= form_with url: game_project_rulebook_versions_path(@game_project), scope: :rulebook_version, data: { turbo: false } do |f| %>
     <p>
-      <%= f.label :title %><br />
-      <%= f.text_field :title %>
+      <%= f.label :summary, "Summary" %><br />
+      <%= f.text_area :summary %>
     </p>
-    <%= f.submit "Save game" %>
+    <% @game_project.rule_modules.order(:title).each do |rule_module| %>
+      <p>
+        <%= check_box_tag "module_ids[]", rule_module.id, false, id: "module_ids_#{rule_module.id}" %>
+        <%= label_tag "module_ids_#{rule_module.id}", rule_module.title %>
+      </p>
+    <% end %>
+    <%= f.submit "Save draft" %>
+  <% end %>
+
+  <% @game_project.rulebook_versions.where(status: 0).order(:version_number).each do |draft| %>
+    <%= form_with url: publish_rulebook_version_path(draft), method: :post, data: { turbo: false } do %>
+      <p>Draft <%= draft.version_number %>: <%= draft.summary %></p>
+      <%= submit_tag "Publish version #{draft.version_number}" %>
+    <% end %>
   <% end %>
 <% end %>
 

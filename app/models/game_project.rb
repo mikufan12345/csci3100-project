@@ -4,4 +4,6 @@ class GameProject < ApplicationRecord
   belongs_to :studio
   has_many :rule_modules, dependent: :destroy
   has_many :rulebook_versions, dependent: :destroy
+
+  validates :title, presence: true
 end

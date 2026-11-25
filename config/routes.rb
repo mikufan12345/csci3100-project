@@ -2,8 +2,11 @@ Rails.application.routes.draw do
   devise_for :users
 
   resources :studio_members, only: [:update]
-  resources :game_projects, only: [:index, :show, :new, :create]
-  resources :rulebook_versions, only: [] do
+  resources :game_projects, only: [:index, :show, :new, :create] do
+    resources :rulebook_versions, only: [:create]
+  end
+  resources :rulebook_versions, only: [:show, :update] do
+    post :publish, on: :member
     resources :playtest_sessions, only: [:create]
   end
   resources :playtest_sessions, only: [:update] do

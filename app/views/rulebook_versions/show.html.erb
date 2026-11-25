@@ -1,0 +1,7 @@
+<h1><%= @version.game_project.title %>, version <%= @version.version_number %></h1>
+<p><%= @version.summary %></p>
+<ul>
+  <% @version.rule_modules.each do |rule_module| %>
+    <li><%= rule_module.title %></li>
+  <% end %>
+</ul>

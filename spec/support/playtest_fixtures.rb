@@ -21,7 +21,12 @@ module PlaytestFixtures
   end
 
   def version!(game, number:, status:)
-    RulebookVersion.create!(game_project: game, version_number: number, status: status)
+    RulebookVersion.create!(
+      game_project: game,
+      version_number: number,
+      status: status,
+      summary: "Current rules."
+    )
   end
 
   def session!(user, version, minutes: 45, scenarios: 2)

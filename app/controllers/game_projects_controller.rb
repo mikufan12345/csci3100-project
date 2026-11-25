@@ -14,10 +14,10 @@ class GameProjectsController < ApplicationController
     return if @game_project.nil?
 
     @public_version = @game_project.rulebook_versions.find_by(status: 1)
-    return if @public_version.nil?
-
-    @session = current_user.playtest_sessions.where(rulebook_version: @public_version).order(:id).last
-    @feedback = @session.feedbacks.build if @session
+    if @public_version
+      @session = current_user.playtest_sessions.where(rulebook_version: @public_version).order(:id).last
+      @feedback = @session.feedbacks.build if @session
+    end
   end
 
   def new
@@ -33,6 +33,9 @@ class GameProjectsController < ApplicationController
       if @game_project.save
         redirect_to @game_project, notice: "Game created."
       else
+        # The failed build stays on the in-memory association. Drop it so a
+        # later read of this studio matches the database.
+        @studio.game_projects.reset
         render :new, status: :unprocessable_entity
       end
     end
