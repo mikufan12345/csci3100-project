@@ -4,6 +4,26 @@
   <p>Signed in to <%= @studio.name %></p>
   <% if current_user&.role == User::STUDIO_ADMIN %>
     <%= link_to "New game", new_game_project_path %>
+    <h2>Studio members</h2>
+    <ul>
+      <% @studio.users.order(:email).each do |member| %>
+        <li>
+          <%= member.email %>
+          <% if member.id == current_user.id %>
+            <span>studio admin</span>
+          <% else %>
+            <%= form_with url: studio_member_path(member), method: :patch, data: { turbo: false } do %>
+              <%= label_tag "role_#{member.id}", "Role" %>
+              <%= select_tag "user[role]", options_for_select(
+                    [["playtester", "playtester"], ["arbiter", "arbiter"]],
+                    member.role == User::ARBITER ? "arbiter" : "playtester"
+                  ), id: "role_#{member.id}" %>
+              <%= submit_tag "Save role" %>
+            <% end %>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
   <% end %>
 <% else %>
   <p>You are not signed in.</p>

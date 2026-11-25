@@ -75,7 +75,9 @@ These lock behavior that is already in the app. If one of them fails, fix the te
 - `spec/models/feedback_spec.rb`: 30 minutes and 2 scenarios saves. Under 30 minutes is rejected with `Playtime must be at least 30 minutes.` Under 2 scenarios is rejected with `At least 2 scenarios must be completed.`
 - `spec/models/rulebook_version_spec.rb`: a draft can sit beside one public version.
 - `spec/requests/game_projects_spec.rb`: another studio's game is 404, and a playtester who posts a game is 403.
+- `spec/requests/permissions_spec.rb`: an admin who edits a member of another studio gets 404.
 - `features/studio_isolation.feature`: the four original scenarios (own games, foreign 404, playtester 403, admin create).
+- `features/membership.feature`: signup with a studio name, founding a studio, joining as a playtester, and appointing an arbiter inside the studio.
 
 ## What should fail until the code exists
 
@@ -87,7 +89,7 @@ Expected red groups:
 - Sessions on a draft, an archived version, or another studio's version.
 - `PublishRulebookVersion.new(version:, deprecate_module_ids:, replacements:).call`
 - Escalation after the third distinct playtester, and not before.
-- Direct requests: playtester or arbiter publish is 403, triage list for a playtester is 403, another studio's version or feedback is 404, appointing across studios is 404.
+- Direct requests: playtester or arbiter publish is 403, triage list for a playtester is 403, another studio's version or feedback is 404.
 
 ## Contract the steps already assume
 

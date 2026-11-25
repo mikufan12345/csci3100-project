@@ -62,6 +62,14 @@ Rails.application.configure do
   # Suppress logger output for asset requests.
   config.assets.quiet = true
 
+  # Sprockets' file cache rename fails on Windows when tmp/cache is locked.
+  # The test environment uses the same memory cache.
+  if Gem.win_platform?
+    config.assets.configure do |env|
+      env.cache = ActiveSupport::Cache.lookup_store(:memory_store)
+    end
+  end
+
   # Raises error for missing translations.
   # config.i18n.raise_on_missing_translations = true
 
