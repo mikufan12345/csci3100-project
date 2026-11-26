@@ -43,4 +43,19 @@ RSpec.describe PlaytestSession, type: :model do
     expect(played.playtime_minutes).to eq(45)
     expect(played.scenarios_completed).to eq(3)
   end
+
+  it "rejects a negative playtime" do
+    session = PlaytestSession.new(user: playtester, rulebook_version: public_version, playtime_minutes: -10, scenarios_completed: 2)
+    expect(session).not_to be_valid
+  end
+
+  it "rejects a negative scenario count" do
+    session = PlaytestSession.new(user: playtester, rulebook_version: public_version, playtime_minutes: 40, scenarios_completed: -1)
+    expect(session).not_to be_valid
+  end
+
+  it "requires both numbers to be present" do
+    session = PlaytestSession.new(user: playtester, rulebook_version: public_version, playtime_minutes: nil, scenarios_completed: nil)
+    expect(session).not_to be_valid
+  end
 end

@@ -83,4 +83,28 @@ RSpec.describe "PublishRulebookVersion" do
     expect(stamped.reload.status).to eq(3)
     expect(stamped.reload.comments).to eq("Already stamped.")
   end
+
+  it "refuses to publish a version that is no longer a draft" do
+    publish # current -> archived, draft -> public
+    again = PublishRulebookVersion.new(version: current, deprecate_module_ids: [], replacements: {})
+    expect(again.call).to be(false)
+    expect(current.reload.status).to eq(2)
+    expect(draft.reload.status).to eq(1)
+  end
+
+  it "rejects a replacement to a module of another game" do
+    foreign_game = game!(studio!("Dragon's Lair Designs"), "Lorebreakers")
+    heist = mod!(foreign_game, "Heist")
+    result = publish(replacements: { combat.id.to_s => heist.id })
+    expect(result).to be(false)
+    expect(draft.reload.status).to eq(0)
+    expect(combat.reload.replaced_by_id).to be_nil
+  end
+
+  it "rejects replacing a module with itself" do
+    result = publish(replacements: { combat.id.to_s => combat.id })
+    expect(result).to be(false)
+    expect(draft.reload.status).to eq(0)
+    expect(combat.reload.replaced_by_id).to be_nil
+  end
 end

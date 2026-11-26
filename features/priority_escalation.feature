@@ -109,3 +109,4 @@ Feature: Priority escalation
     Then she sees "Combat"
     And she sees "high"
     And she does not see "Bidding"
+    And the report lists 3 playtesters for the "Combat" escalation

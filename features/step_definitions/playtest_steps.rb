@@ -118,6 +118,61 @@ When("{string} publishes version {int} of {string} replacing {string} with {stri
   )
 end
 
+When("{string} publishes version {int} of {string} replacing {string} with {string} from {string}") do |email, number, game_title, old_title, new_title, other_game_title|
+  version = version_named(game_title, number)
+  old_module = module_named(game_title, old_title)
+  new_module = module_named(other_game_title, new_title)
+  submit_as(
+    email,
+    :post,
+    "/rulebook_versions/#{version.id}/publish",
+    { replacements: { old_module.id.to_s => new_module.id } }
+  )
+end
+
+Given("the game {string} has a raw module {string}") do |game_title, module_title|
+  # A module that was never touched: no `deprecated` attribute at all.
+  game_named(game_title).rule_modules.create!(title: module_title)
+end
+
+Then("the module {string} of {string} is deprecated") do |module_title, game_title|
+  assert module_named(game_title, module_title).deprecated, "#{module_title} was not deprecated"
+end
+
+When("{string} filters feedback with status {word}") do |email, status_name|
+  sign_in_as(email)
+  visit "/feedbacks?status=#{status_name}"
+end
+
+When("{string} filters feedback with priority {word}") do |email, priority_name|
+  sign_in_as(email)
+  visit "/feedbacks?priority=#{priority_name}"
+end
+
+When("{string} filters feedback to the game {string}") do |email, game_title|
+  sign_in_as(email)
+  visit "/feedbacks?game_project_id=#{game_named(game_title).id}"
+end
+
+When("{string} tries to give feedback on {string}'s latest session") do |email, other_email|
+  other = User.find_by!(email: other_email)
+  session = other.playtest_sessions.order(:id).last
+  submit_as(email, :post, "/feedbacks", {
+    playtest_session_id: session.id,
+    feedback: {
+      rule_module_id: session.rulebook_version.game_project.rule_modules.first.id,
+      severity: "low",
+      comments: "Not my session."
+    }
+  })
+end
+
+Then("the report lists {int} playtesters for the {string} escalation") do |count, module_title|
+  row = page.find("tr", text: module_title)
+  cells = row.find_all("td").map(&:text)
+  assert_equal count.to_s, cells.last, "expected #{count} playtesters, row was #{cells.inspect}"
+end
+
 When("{string} posts summary {string} for version {int} of {string}") do |email, summary, number, game_title|
   version = version_named(game_title, number)
   submit_as(email, :patch, "/rulebook_versions/#{version.id}", { rulebook_version: { summary: summary } })

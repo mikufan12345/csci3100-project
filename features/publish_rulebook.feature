@@ -63,3 +63,35 @@ Feature: Publish a rulebook
     Given the game "Gloomhaven Remix" has a public version 1 with summary "The first public rules." including "Combat"
     When "alice@example.com" posts summary "Secretly rewritten." for version 1 of "Gloomhaven Remix"
     Then version 1 of "Gloomhaven Remix" still has summary "The first public rules."
+
+  Scenario: A replacement must be another module of the same game
+    Given the game "Gloomhaven Remix" has a public version 1 with summary "The first public rules." including "Combat, Magic"
+    And the game "Gloomhaven Remix" has a draft version 2 with summary "The revised rules." including "Magic"
+    And the studio "Dragon's Lair Designs" has a game "Lorebreakers"
+    And the game "Lorebreakers" has a module "Heist"
+    When "alice@example.com" publishes version 2 of "Gloomhaven Remix" replacing "Combat" with "Combat"
+    Then the response is a 422
+    And version 2 of "Gloomhaven Remix" is draft
+    When "alice@example.com" publishes version 2 of "Gloomhaven Remix" replacing "Combat" with "Heist" from "Lorebreakers"
+    Then the response is a 422
+    And version 2 of "Gloomhaven Remix" is draft
+
+  Scenario: Publish deprecates a module that was never touched before
+    Given the game "Gloomhaven Remix" has a raw module "Tactics"
+    And the game "Gloomhaven Remix" has a public version 1 with summary "The first public rules." including "Tactics"
+    And the game "Gloomhaven Remix" has a draft version 2 with summary "The revised rules." including "Tactics"
+    When "alice@example.com" publishes version 2 of "Gloomhaven Remix" deprecating "Tactics"
+    Then the response is a 200
+    And the module "Tactics" of "Gloomhaven Remix" is deprecated
+
+  Scenario: Re-publishing a version that is no longer a draft is rejected
+    Given the game "Gloomhaven Remix" has a public version 1 with summary "The first public rules." including "Combat"
+    And the game "Gloomhaven Remix" has a draft version 2 with summary "The revised rules." including "Combat, Magic"
+    When "alice@example.com" publishes version 2 of "Gloomhaven Remix"
+    Then version 1 of "Gloomhaven Remix" is archived
+    And version 2 of "Gloomhaven Remix" is public
+    When "alice@example.com" publishes version 1 of "Gloomhaven Remix"
+    Then the response is a 422
+    And version 1 of "Gloomhaven Remix" is archived
+    And version 2 of "Gloomhaven Remix" is public
+    And the game "Gloomhaven Remix" has 1 public versions
