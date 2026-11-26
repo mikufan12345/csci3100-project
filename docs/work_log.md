@@ -323,3 +323,43 @@ Checks that were run:
 The implementation commit is `e329d43`. It is not pushed yet; there is no Actions URL for it.
 
 Left undone: Business Rule 2's stamp (the last service work), title search, seeds, the README SHA write-up, and Render.
+
+## 2026-11-26 — BR2: stamp older feedback for re-evaluation on publish
+
+Requested work: implement Business Rule 2 inside the publish transaction, then title search (the last two red slices).
+
+What was added for BR2:
+
+- `PublishRulebookVersion` now performs, inside the same transaction and in this order: lock the game's versions, deprecate the named modules and record their `replaced_by_id`, stamp eligible feedback, archive the previous public version, make the draft public.
+- The stamp targets feedback on the affected modules (deprecated or replaced) in versions with a lower `version_number` than the one being published, and only rows still `unreviewed` or `valid_bug` become `re_evaluation`. Terminal verdicts, existing stamps, and every other column (comments, severity, priority) are left byte-for-byte, written with `update_column`. Because the stamp runs before the archive step, the older version is still public and the archived read-only freeze never sees it.
+- Migration `20261126140000_add_replaced_by_to_rule_modules` adds `rule_modules.replaced_by_id` (self reference), and `RuleModule` gains the optional `belongs_to :replaced_by`.
+- The first run of the stamp query failed with `missing FROM-clause entry for table "rule_modules"`: the `where` on `rule_modules` needed the join to be present. The fix joins `:rule_module` explicitly; after it, the slice is green.
+
+Checks that were run:
+
+- `bin/rspec spec/services/publish_rulebook_version_spec.rb`: 5 examples, 0 failures.
+- `bundle exec cucumber features/reevaluate_on_publish.feature`: 4 scenarios, 81 steps, all passed.
+
+## 2026-11-26 — Title search on the games page
+
+What was added:
+
+- `GameProjectsController#index` applies a `?q=` title filter: case-insensitive `ILIKE`, wildcard characters in the query escaped, and applied on top of the studio-scoped relation, so a search can only ever list the signed-in studio's games. Guests still see an empty index.
+- The games page has a search box that posts to the root path with `q`.
+
+Checks that were run:
+
+- `bundle exec cucumber features/studio_isolation.feature`: the "Game search stays inside the studio and filters by title" scenario passes (part of the full run below).
+
+## Final green run of both suites
+
+- Full `bin/rspec`: 47 examples, 0 failures, exit 0.
+- Full `bundle exec cucumber`: 61 scenarios, 61 passed, 909 steps, 0 failures, exit 0.
+- `bundle exec rake test:all` was not run as one command yet. Both of the commands it wraps were run separately and both exit 0. The coverage number will be recorded with the final package run.
+- The schema migration ran against the local user-owned PostgreSQL 14 server (`~/pgdata`) for the development and test databases; `db/schema.rb` is at version `2026_11_26_140000`.
+- Rack again printed `Status code :unprocessable_entity is deprecated`. The status is still 422.
+- No browser tool was available. The search box and publish flow were driven by the rack_test scenarios.
+
+The implementation commits are `8648b30` (BR2) and `b788578` (title search). Both follow the work log commit. Nothing was pushed at the time this was written.
+
+Left undone: seeds, the README SHA write-up, render.yaml pointing at managed Postgres and the Render deploy, the final `test:all` coverage run, and the demo video.
