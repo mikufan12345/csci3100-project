@@ -2,6 +2,11 @@
 
 <% if @studio %>
   <p>Signed in to <%= @studio.name %></p>
+  <form method="get" action="<%= root_path %>" style="display: inline;">
+    <label for="game_search">Search games</label>
+    <input type="search" name="q" id="game_search" value="<%= params[:q] %>">
+    <%= submit_tag "Search" %>
+  </form>
   <% if current_user&.role == User::STUDIO_ADMIN %>
     <%= link_to "New game", new_game_project_path %>
     <h2>Studio members</h2>

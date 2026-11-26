@@ -6,6 +6,7 @@ class GameProjectsController < ApplicationController
 
   def index
     @game_projects = @studio ? @studio.game_projects.order(:title) : GameProject.none
+    filter_by_title
   end
 
   def show
@@ -42,6 +43,16 @@ class GameProjectsController < ApplicationController
   end
 
   private
+
+  # The search box on the games page: a case-insensitive title filter that
+  # can only ever see the signed-in studio's games.
+  def filter_by_title
+    query = params[:q].to_s.strip
+    return if query.empty?
+
+    escaped = query.gsub(/[\\%_]/) { |wildcard| "\\#{wildcard}" }
+    @game_projects = @game_projects.where("game_projects.title ILIKE :query", query: "%#{escaped}%")
+  end
 
   def game_params
     params.require(:game_project).permit(:title)
