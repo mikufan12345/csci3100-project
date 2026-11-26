@@ -363,3 +363,40 @@ Checks that were run:
 The implementation commits are `8648b30` (BR2) and `b788578` (title search). Both follow the work log commit. Nothing was pushed at the time this was written.
 
 Left undone: seeds, the README SHA write-up, render.yaml pointing at managed Postgres and the Render deploy, the final `test:all` coverage run, and the demo video.
+
+## 2026-11-26 — Audit hardening pass (red → green)
+
+Requested work: a review of the built behaviour against docs/refined_proposal.md found seven gaps; implement them test-first.
+
+Red commit `91cf64e` added the failing tests: RSpec examples in `spec/services/publish_rulebook_version_spec.rb` (boolean `deprecated`, replacement validation, publishing a non-draft is refused), `spec/requests/feedbacks_spec.rb` (the list defaults to unreviewed, `status=all` lists every status, a playtester reads only their own rows, feedback on a foreign-studio session is a 404), `spec/models/playtest_session_spec.rb` (both numbers are required and non-negative), and new feature scenarios in `features/publish_rulebook.feature`, `features/escalate_and_report.feature` (the report's playtester count), and `features/triage_feedback.feature`.
+
+Green commit `f216883` closed them:
+
+- Migration `20261126150000_change_rule_modules_deprecated_to_boolean` converts `rule_modules.deprecated` to `boolean NOT NULL DEFAULT false` (PostgreSQL refuses the automatic integer→boolean cast, so the change carries an explicit `USING (deprecated <> 0)` after a backfill). `PublishRulebookVersion` now writes `deprecated: true` and `deprecate_modules` matches on `deprecated: false`.
+- `PublishRulebookVersion` refuses to publish anything that is not a draft, and validates that every replacement maps a module of the game to a different module of the same game before the transaction opens.
+- `FeedbacksController#create` answers 404 when the target session is not the signed-in player's session in the current studio; `#index` defaults to `?status=unreviewed`, accepts `status=all`, and gains `priority=` and `game_project_id=` filters; `#show` lets a playtester open only their own rows (another playtester's row is a 404).
+- `Escalation#distinct_playtester_count` (distinct `playtest_sessions.user_id` over the escalation's feedback) and a matching column on the escalation report; `PlaytestSession` gains `numericality` floors on both counters.
+- Two of the new RSpec examples had test bugs (lazy `let` rows that were never materialized, and a public version created after the publish it was meant to observe); both were fixed in the green commit.
+
+Checks that were run:
+
+- `bin/rspec`: 59 examples, 0 failures.
+- `bundle exec cucumber`: 69 scenarios, 69 passed, 1146 steps, 0 failures.
+- The migration ran against the local user-owned PostgreSQL 14 server for both databases; `psql` confirms `deprecated` is `boolean NOT NULL DEFAULT false`.
+
+## 2026-11-26 — Seeds, Render config, and the coverage gate
+
+Requested work: finish the submission package (spec section 8).
+
+- `db/seeds.rb` is idempotent (run twice against the development database with no duplicates): two studios, six accounts (admin/playtester/arbiter per studio, one shared demo password), one game, two modules, and one public version including both modules per studio; no feedback is seeded.
+- `render.yaml` now describes a web service (start `bundle exec puma -C config/puma.rb`, release command `bin/rails db:prepare`, health check `/up`) plus a managed PostgreSQL service (`pserv`); `RAILS_MASTER_KEY` is set as an environment variable in the dashboard, and `config/master.key` is not in Git.
+- SimpleCov was in the Gemfile but never started. It now starts in `spec/rails_helper.rb` (project name `RSpec`), in `features/environment.rb` before cucumber-rails loads Rails (project name `Cucumber Features`), and in `test/test_helper.rb`; both measure `app/` only. `test:all` (`lib/tasks/test_all.rake`) runs both suites, then reports the combined line coverage computed as the union of the two result sets in `coverage/.resultset.json` (a line is counted once per file; covered when any suite hit it). This union is a conservative number: the gem's own merged report for the same run read 96.06%, the task printed **94.10%** (383/407) — both above the 80% target.
+- One gem-version trap cost a rerun: the installed SimpleCov 1.3.2 exposes `ResultMerger` only as a module, so the rake task reads the JSON result set instead of calling the merging API.
+
+Checks that were run:
+
+- `bin/rails db:seed` twice: idempotent; `psql` shows 2 studios × 3 users × 1 game, 0 feedback rows, one public v1 per game.
+- `bundle exec rake test:all`: RSpec 59 examples 0 failures; Cucumber 69 scenarios passed (1146 steps); "Combined line coverage of app/: 383 / 407 (94.10%)"; exit 0.
+- Pushed `1c8be22..5ec6e18` to origin/main; the Actions run for `5ec6e18` (run `45842160088`) finished **success** (checked with `gh run list`).
+
+Left undone: the section-8 README write-up (the team will write it; the spec's checklist is in docs/refined_proposal.md), the Render deployment and its assigned URL, and the demo video.
