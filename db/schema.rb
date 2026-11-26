@@ -10,9 +10,19 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_11_25_201000) do
+ActiveRecord::Schema[7.1].define(version: 2026_11_26_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "escalations", force: :cascade do |t|
+    t.bigint "rule_module_id", null: false
+    t.integer "severity", null: false
+    t.integer "priority", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["rule_module_id", "severity"], name: "index_escalations_on_rule_module_id_and_severity", unique: true
+    t.index ["rule_module_id"], name: "index_escalations_on_rule_module_id"
+  end
 
   create_table "feedbacks", force: :cascade do |t|
     t.bigint "playtest_session_id", null: false
@@ -23,6 +33,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_25_201000) do
     t.datetime "updated_at", null: false
     t.integer "severity"
     t.integer "priority", default: 0, null: false
+    t.bigint "escalation_id"
+    t.index ["escalation_id"], name: "index_feedbacks_on_escalation_id"
     t.index ["playtest_session_id"], name: "index_feedbacks_on_playtest_session_id"
     t.index ["rule_module_id"], name: "index_feedbacks_on_rule_module_id"
   end

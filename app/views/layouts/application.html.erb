@@ -15,6 +15,9 @@
       <% if [User::STUDIO_ADMIN, User::ARBITER].include?(current_user.role) %>
         <%= link_to "Feedback triage", feedbacks_path %>
       <% end %>
+      <% if current_user.role == User::STUDIO_ADMIN %>
+        <%= link_to "Escalations", escalations_path %>
+      <% end %>
       <%= button_to "Sign out", destroy_user_session_path, method: :delete, data: { turbo: false } %>
     <% end %>
     <%= yield %>

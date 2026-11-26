@@ -1,0 +1,34 @@
+<h1>Escalation report</h1>
+
+<% if @studio %>
+  <p>Signed in to <%= @studio.name %></p>
+
+  <form method="get" action="<%= escalations_path %>" style="display: inline;">
+    <label for="game_project_id">Game</label>
+    <select name="game_project_id" id="game_project_id">
+      <option value="">all games</option>
+      <% @studio.game_projects.order(:title).each do |game| %>
+        <option value="<%= game.id %>" <%= "selected" if params[:game_project_id] == game.id.to_s %>><%= game.title %></option>
+      <% end %>
+    </select>
+    <%= submit_tag "Filter" %>
+  </form>
+
+  <% if @escalations.any? %>
+    <table>
+      <tr><th>Module</th><th>Severity</th><th>Game</th><th>Priority</th></tr>
+      <% @escalations.each do |escalation| %>
+        <tr>
+          <td><%= escalation.rule_module.title %></td>
+          <td><%= escalation.severity_name %></td>
+          <td><%= escalation.rule_module.game_project.title %></td>
+          <td><%= escalation.priority == Escalation::PRIORITY_ESCALATED ? "escalated" : "normal" %></td>
+        </tr>
+      <% end %>
+    </table>
+  <% else %>
+    <p>No escalations.</p>
+  <% end %>
+<% else %>
+  <p>You are not signed in.</p>
+<% end %>

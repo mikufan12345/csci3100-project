@@ -24,6 +24,7 @@ class Feedback < ApplicationRecord
 
   belongs_to :playtest_session
   belongs_to :rule_module
+  belongs_to :escalation, optional: true
 
   # Omitted severity is low. An explicit nil still fails inclusion, which is
   # what "requires a severity" asserts.
@@ -33,6 +34,8 @@ class Feedback < ApplicationRecord
   validates :severity, inclusion: { in: [0, 1, 2] }
 
   before_validation :assign_unreviewed_status, on: :create
+  before_validation :clear_posted_priority, on: :create
+  after_create :record_priority_escalation
   validate :session_meets_play_gate
   validate :module_included_in_version
   validate :freeze_comments, on: :update
@@ -62,6 +65,18 @@ class Feedback < ApplicationRecord
 
   def assign_unreviewed_status
     self.status = 0 if status.nil?
+  end
+
+  # Priority is not something a player can ask for: a posted value is
+  # dropped and only EscalateFeedback may raise it, and only on a row that
+  # survives past create.
+  def clear_posted_priority
+    self.priority = Escalation::PRIORITY_NORMAL
+  end
+
+  # Business Rule 3 runs inside the same transaction as the save.
+  def record_priority_escalation
+    EscalateFeedback.call(self)
   end
 
   def module_included_in_version

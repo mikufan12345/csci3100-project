@@ -13,6 +13,7 @@ Rails.application.routes.draw do
     resources :feedbacks, only: [:create]
   end
   resources :feedbacks, only: [:index, :show, :update]
+  get "escalations", to: "escalations#index"
   root "game_projects#index"
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
