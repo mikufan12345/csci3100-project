@@ -19,7 +19,7 @@ class User < ApplicationRecord
   #  - is new                                         -> found it as studio_admin
   attr_accessor :studio_name
 
-  validates :role, inclusion: { in: ROLES.values }, allow_nil: true
+  validates :role, inclusion: { in: ROLES.values }
 
   before_validation(on: :create) { assign_studio_on_signup }
 
