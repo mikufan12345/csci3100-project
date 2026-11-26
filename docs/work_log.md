@@ -276,3 +276,22 @@ Checks that were run:
 The implementation commit is `75eb273`. Nothing was pushed. There is no Actions URL. `bin/*` still shows as modified because `core.autocrlf` is true. Those line-ending diffs were left out of the commit.
 
 Left undone: Business Rule 2's stamp, Business Rule 3 escalation (including the escalation report page), title search, the `requires a role` example, seeds, the README SHA write-up, and Render. `render.yaml` still does not point at managed Postgres. A posted priority on a lone report still stays 1 until the escalation service learns to ignore it.
+
+## 2026-11-26 — `requires a role`: drop the nil hole in the role validation
+
+Requested work: fix the last small validation bug before the bigger slices. A user row without a role was accepted because `validates :role, inclusion: ...` carried `allow_nil: true`. Every real path (sign-up's `before_validation`, the `member!` fixture, the seeds scaffold) assigns a role, so the nil hole only existed for hand-built rows.
+
+What changed:
+
+- `app/models/user.rb`: the role validation no longer allows nil. A user saved without a role is now invalid.
+
+Checks that were run:
+
+- `bin/rspec spec/models/user_spec.rb`: 6 examples, 0 failures.
+- Full `bin/rspec`: 47 examples, 9 failures, exit 1. Down from 10; the 9 are `does not let a caller set escalated priority on a lone report`, six `Escalation` examples, and the two Business Rule 2 stamp examples.
+- Full `bundle exec cucumber`: 61 scenarios, 11 failed, 50 passed. Unchanged from the Story 3 run: eight priority-escalation, two re-evaluation, one title search. Sign-up with a blank studio name still 422s (it now also reports the role error, which does not matter).
+- `bundle exec rake test:all` was not run as one command. Both of the commands it wraps were run separately.
+
+The implementation commit is `dfb61ea`. The work log commit follows it. Nothing was pushed.
+
+Left undone: Business Rule 3 escalation (including the report page), Business Rule 2's stamp, title search, seeds, the README SHA write-up, and Render.
