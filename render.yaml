@@ -4,9 +4,14 @@ services:
     runtime: ruby
     plan: free
     buildCommand: bundle install
-    startCommand: bundle exec rails db:prepare && bundle exec puma -C config/puma.rb
-    healthCheckPath: /
-  - type: disk
-    name: csci3100-pg
-    plan: free
-    # Render injects DATABASE_URL into the web service automatically
+    startCommand: bundle exec puma -C config/puma.rb
+    # Runs in the release phase before the new container starts. DATABASE_URL
+    # comes from the managed Postgres service below; RAILS_MASTER_KEY is set
+    # as an environment variable on the service (config/master.key is not in
+    # Git). The health check hits /up, which does not require sign-in.
+    releaseCommand: bin/rails db:prepare
+    healthCheckPath: /up
+  - type: pserv
+    name: csci3100-postgres
+    plan: starter
+    # Render injects DATABASE_URL into the web service automatically.
