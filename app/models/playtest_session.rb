@@ -3,6 +3,9 @@ class PlaytestSession < ApplicationRecord
   belongs_to :rulebook_version
   has_many :feedbacks, dependent: :destroy
 
+  validates :playtime_minutes, :scenarios_completed,
+            numericality: { only_integer: true, greater_than_or_equal_to: 0 }
+
   validate :public_version_in_the_players_studio, on: :create
   validate :freeze_recorded_play, on: :update
   validate :freeze_archived_version, on: :update

@@ -85,6 +85,7 @@ RSpec.describe "PublishRulebookVersion" do
   end
 
   it "refuses to publish a version that is no longer a draft" do
+    current # materialize the public version before the publish below archives it
     publish # current -> archived, draft -> public
     again = PublishRulebookVersion.new(version: current, deprecate_module_ids: [], replacements: {})
     expect(again.call).to be(false)

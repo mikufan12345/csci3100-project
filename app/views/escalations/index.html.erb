@@ -16,13 +16,14 @@
 
   <% if @escalations.any? %>
     <table>
-      <tr><th>Module</th><th>Severity</th><th>Game</th><th>Priority</th></tr>
+      <tr><th>Module</th><th>Severity</th><th>Game</th><th>Priority</th><th>Playtesters</th></tr>
       <% @escalations.each do |escalation| %>
         <tr>
           <td><%= escalation.rule_module.title %></td>
           <td><%= escalation.severity_name %></td>
           <td><%= escalation.rule_module.game_project.title %></td>
           <td><%= escalation.priority == Escalation::PRIORITY_ESCALATED ? "escalated" : "normal" %></td>
+          <td><%= escalation.distinct_playtester_count %></td>
         </tr>
       <% end %>
     </table>

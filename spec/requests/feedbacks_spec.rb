@@ -20,6 +20,7 @@ RSpec.describe "feedback list and visibility", type: :request do
   let(:frank_note) { feedback!(session!(frank, current), combat, comments: "Frank keeps the coin.") }
 
   it "defaults the triage list to the studio's unreviewed feedback" do
+    carol_note
     carol_bug
     sign_in dave
     get "/feedbacks"
@@ -28,6 +29,7 @@ RSpec.describe "feedback list and visibility", type: :request do
   end
 
   it "lists every status when asked for all" do
+    carol_note
     carol_bug
     sign_in dave
     get "/feedbacks?status=all"

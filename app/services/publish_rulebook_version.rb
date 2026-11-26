@@ -19,6 +19,15 @@ class PublishRulebookVersion
   def call
     published = false
 
+    unless @version.status == RulebookVersion::STATUS_DRAFT
+      @version.errors.add(:base, "only a draft version can be published")
+      return false
+    end
+    unless valid_replacements?
+      @version.errors.add(:base, "a replacement must name another module of this game")
+      return false
+    end
+
     RulebookVersion.transaction do
       game = @version.game_project
       game.rulebook_versions.lock.load
@@ -42,12 +51,25 @@ class PublishRulebookVersion
 
   private
 
+  # A replacement maps a module of this game to a DIFFERENT module of the
+  # same game. Anything else (foreign id, missing id, self) refuses the
+  # whole publish: `update_all` would otherwise write any integer past the
+  # model's validations.
+  def valid_replacements?
+    game = @version.game_project
+    @replacements.all? do |old_id, new_id|
+      old = game.rule_modules.find_by(id: old_id.to_i)
+      new = game.rule_modules.find_by(id: new_id.to_i)
+      !old.nil? && !new.nil? && old.id != new.id
+    end
+  end
+
   def deprecate_modules(game, module_ids)
     return if module_ids.empty?
 
     game.rule_modules.where(id: module_ids)
-                    .where(deprecated: 0)
-                    .update_all(deprecated: 1)
+                    .where(deprecated: false)
+                    .update_all(deprecated: true)
 
     @replacements.each do |old_id, new_id|
       game.rule_modules.where(id: old_id.to_i)

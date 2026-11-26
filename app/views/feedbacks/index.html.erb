@@ -6,15 +6,27 @@
     Filter:
     <form method="get" action="<%= feedbacks_path %>" style="display: inline;">
       <select name="status">
-        <option value="">any status</option>
+        <option value="all" <%= "selected" if params[:status] == "all" %>>all statuses</option>
         <% Feedback::STATUSES.each do |name, _| %>
-          <option value="<%= name %>" <%= "selected" if params[:status] == name %>><%= name %></option>
+          <option value="<%= name %>" <%= "selected" if (params[:status].presence || "unreviewed") == name %>>%= name %></option>
         <% end %>
       </select>
       <select name="severity">
         <option value="">any severity</option>
         <% Feedback::SEVERITIES.each do |name, _| %>
-          <option value="<%= name %>" <%= "selected" if params[:severity] == name %>><%= name %></option>
+          <option value="<%= name %>" <%= "selected" if params[:severity] == name %>>%= name %></option>
+        <% end %>
+      </select>
+      <select name="priority">
+        <option value="">any priority</option>
+        <% Feedback::PRIORITIES.each do |name, _| %>
+          <option value="<%= name %>" <%= "selected" if params[:priority] == name %>>%= name %></option>
+        <% end %>
+      </select>
+      <select name="game_project_id">
+        <option value="">all games</option>
+        <% @studio.game_projects.order(:title).each do |game| %>
+          <option value="<%= game.id %>" <%= "selected" if params[:game_project_id] == game.id.to_s %>>%= game.title %></option>
         <% end %>
       </select>
       <%= submit_tag "Filter" %>
@@ -23,7 +35,7 @@
 
   <% if @feedbacks.any? %>
     <table>
-      <tr><th>Comments</th><th>Module</th><th>Game</th><th>Status</th><th>Severity</th><th>Version</th></tr>
+      <tr><th>Comments</th><th>Module</th><th>Game</th><th>Status</th><th>Severity</th><th>Priority</th><th>Version</th></tr>
       <% @feedbacks.each do |note| %>
         <tr>
           <td><%= link_to note.comments, feedback_path(note) %></td>
@@ -31,6 +43,7 @@
           <td><%= note.playtest_session.rulebook_version.game_project.title %></td>
           <td><%= note.status_name %></td>
           <td><%= note.severity_name %></td>
+          <td><%= Feedback::PRIORITIES.key(note.priority) %></td>
           <td><%= note.playtest_session.rulebook_version.version_number %> (<%= note.playtest_session.rulebook_version.status == RulebookVersion::STATUS_ARCHIVED ? "archived" : "public" %>)</td>
         </tr>
       <% end %>

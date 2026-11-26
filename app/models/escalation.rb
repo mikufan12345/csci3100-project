@@ -14,4 +14,10 @@ class Escalation < ApplicationRecord
   def severity_name
     Feedback::SEVERITIES.key(severity)
   end
+
+  # Business Rule 3: how many distinct playtesters reported this module at
+  # this severity. Archived rows count; the same player never counts twice.
+  def distinct_playtester_count
+    feedbacks.joins(:playtest_session).distinct.count(PlaytestSession.arel_table[:user_id])
+  end
 end

@@ -22,6 +22,12 @@ class Feedback < ApplicationRecord
   # The only verdicts a rules arbiter (or admin) may post on triage.
   TRIAGE_VERDICTS = %w[valid_bug working_as_intended].freeze
 
+  # Priority (feedbacks.priority and escalations.priority, integer)
+  PRIORITY_NORMAL    = 0
+  PRIORITY_ESCALATED = 1
+
+  PRIORITIES = { "normal" => PRIORITY_NORMAL, "escalated" => PRIORITY_ESCALATED }.freeze
+
   belongs_to :playtest_session
   belongs_to :rule_module
   belongs_to :escalation, optional: true

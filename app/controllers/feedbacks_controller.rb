@@ -12,21 +12,25 @@ class FeedbacksController < ApplicationController
       @public_version = @game_project.rulebook_versions.find_by(status: 1)
       render "game_projects/show", status: :unprocessable_entity
     end
+  rescue ActiveRecord::RecordNotFound
+    render plain: "not found", status: :not_found
   end
 
   # Story 3: the triage list. Arbiters and admins see the studio's feedback;
-  # a playtester gets a 403. Optional ?status= and ?severity= filters use the
-  # word names from Feedback::STATUSES / Feedback::SEVERITIES.
+  # a playtester gets a 403. Optional filters: ?status= (defaults to
+  # unreviewed, "all" lifts the status filter), ?severity=, ?priority=,
+  # and ?game_project_id= — all using the word names from Feedback's maps.
   def index
     return unless authorize_role!(User::STUDIO_ADMIN, User::ARBITER)
 
     @feedbacks = studio_feedback
                  .includes(:rule_module, playtest_session: { rulebook_version: :game_project })
-    if params[:status].present?
-      status = Feedback::STATUSES.fetch(params[:status], nil)
-      return render plain: "unknown status", status: :unprocessable_entity if status.nil?
+    status = params[:status].presence || "unreviewed"
+    if status != "all"
+      value = Feedback::STATUSES.fetch(status, nil)
+      return render plain: "unknown status", status: :unprocessable_entity if value.nil?
 
-      @feedbacks = @feedbacks.where(status: status)
+      @feedbacks = @feedbacks.where(status: value)
     end
     if params[:severity].present?
       severity = Feedback::SEVERITIES.fetch(params[:severity], nil)
@@ -34,12 +38,26 @@ class FeedbacksController < ApplicationController
 
       @feedbacks = @feedbacks.where(severity: severity)
     end
+    if params[:priority].present?
+      priority = Feedback::PRIORITIES.fetch(params[:priority], nil)
+      return render plain: "unknown priority", status: :unprocessable_entity if priority.nil?
+
+      @feedbacks = @feedbacks.where(priority: priority)
+    end
+    if params[:game_project_id].present?
+      @feedbacks = @feedbacks.where(rulebook_versions: { game_project_id: params[:game_project_id] })
+    end
     @feedbacks = @feedbacks.order(created_at: :desc, id: :desc)
   end
 
-  # Anyone in the studio may read a row; another studio's id is a 404.
+  # Arbiters and admins may read any row in the studio; a playtester may
+  # read only their own (another playtester's row is a 404). Another
+  # studio's id is a 404 for everyone.
   def show
     @feedback = studio_feedback.find(params[:id])
+    if current_user.role == User::PLAYTESTER && @feedback.playtest_session.user_id != current_user.id
+      return render plain: "not found", status: :not_found
+    end
   rescue ActiveRecord::RecordNotFound
     render plain: "not found", status: :not_found
   end

@@ -12,7 +12,7 @@ Rails.application.routes.draw do
   resources :playtest_sessions, only: [:update] do
     resources :feedbacks, only: [:create]
   end
-  resources :feedbacks, only: [:index, :show, :update]
+  resources :feedbacks, only: [:index, :show, :create, :update]
   get "escalations", to: "escalations#index"
   root "game_projects#index"
 
