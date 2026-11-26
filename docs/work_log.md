@@ -295,3 +295,31 @@ Checks that were run:
 The implementation commit is `dfb61ea`. The work log commit follows it. Nothing was pushed.
 
 Left undone: Business Rule 3 escalation (including the report page), Business Rule 2's stamp, title search, seeds, the README SHA write-up, and Render.
+
+## 2026-11-26 — BR3: priority escalation, and the escalation report
+
+Requested work: push the Story 3 / role-validation commits, check for stray untracked files, then implement Business Rule 3.
+
+Push: `git push origin main` updated the remote from `b231040` to `219c724` (Story 3 code and log, the Story 3 work log, the role fix and its log). Stray-file check: `git ls-files --others --exclude-standard` was empty; `.clm/` (the context mirror) is ignored by `.gitignore`, `.freebuff/` by `.git/info/exclude`, `.ruby-lsp/` by the global ignore; `config/master.key`, logs, `tmp/`, coverage, and the course PDFs are all untracked; the only tracked credentials file is `config/credentials.yml.enc`. `bin/*` shows no CRLF diffs this session.
+
+What was added:
+
+- Migration `20261126130000_create_escalations`: the `escalations` table (`rule_module_id`, `severity`, `priority` defaulting to normal, timestamps, a unique index on `rule_module_id + severity` so there is exactly one escalation per module and severity) and `feedbacks.escalation_id`. This also removes a latent crash: the Story 3 freeze check lists `escalation_id` among the columns it inspects, and that column now exists.
+- `Escalation` model (`PRIORITY_NORMAL`/`PRIORITY_ESCALATED`, `severity_name`) and `Feedback belongs_to :escalation, optional: true`.
+- `EscalateFeedback` service in `app/services/`, called from `Feedback`'s `after_create`, inside the same transaction as the save. It counts distinct playtesters across every feedback row on the module at the same severity — archived rows count — and at three it finds or creates the one escalation for that module and severity and sets `priority` and `escalation_id` on the rows whose version is still public, using `update_columns` so the archived-freeze validations are never triggered on rows the service is not supposed to write.
+- `Feedback` now drops a posted priority at create (`clear_posted_priority`): a player can ask for `escalated` and the row is stored at `normal`; only the service raises it, and only after the row has survived.
+- `EscalationsController#index` (admin-only, studio-scoped, optional `?game_project_id=` filter) with its report view; the layout links it for admins.
+
+Checks that were run:
+
+- `bin/rspec spec/services/escalate_feedback_spec.rb spec/models/feedback_spec.rb`: 15 examples, 0 failures.
+- `bundle exec cucumber features/priority_escalation.feature`: 8 scenarios, 8 passed, 172 steps.
+- Full `bin/rspec`: 47 examples, 2 failures, exit 1. Only the two Business Rule 2 stamp examples remain.
+- Full `bundle exec cucumber`: 61 scenarios, 3 failed, 58 passed, exit 1. The three are two re-evaluation scenarios and the title search.
+- `bundle exec rake test:all` was not run as one command. Both of the commands it wraps were run separately.
+- The schema migration ran against the local user-owned PostgreSQL 14 server (`~/pgdata`) for both the development and test databases; `db/schema.rb` now contains the `escalations` table and `feedbacks.escalation_id`.
+- No browser tool was available. The report page was driven by the rack_test scenarios.
+
+The implementation commit is `e329d43`. It is not pushed yet; there is no Actions URL for it.
+
+Left undone: Business Rule 2's stamp (the last service work), title search, seeds, the README SHA write-up, and Render.
