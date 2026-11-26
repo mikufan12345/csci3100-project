@@ -4,6 +4,20 @@ ENV['RAILS_ENV'] ||= 'test'
 require_relative '../config/environment'
 # Prevent database truncation if the environment is production
 abort("The Rails environment is running in production mode!") if Rails.env.production?
+# SimpleCov measures the application code (app/). The summary prints when
+# the RSpec process exits; the project target is >= 80% line coverage.
+require "simplecov"
+# Measure the application code only: everything outside app/ is test
+# scaffolding. The project target is >= 80% line coverage of app/.
+SimpleCov.start do
+  project_name "RSpec"
+  add_filter "/config/"
+  add_filter "/test/"
+  add_filter "/spec/"
+  add_filter "/lib/"
+  add_filter "/features/"
+  add_filter "/vendor/"
+end
 # Uncomment the line below in case you have `--require rails_helper` in the `.rspec` file
 # that will avoid rails generators crashing because migrations haven't been run yet
 # return unless Rails.env.test?
