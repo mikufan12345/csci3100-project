@@ -3,6 +3,7 @@
 # deprecate when publishing a new RulebookVersion. 
 class RuleModule < ApplicationRecord
   belongs_to :game_project
+  belongs_to :replaced_by, class_name: "RuleModule", optional: true
   has_many :rulebook_inclusions, dependent: :destroy
   has_many :feedbacks, dependent: :destroy
 end

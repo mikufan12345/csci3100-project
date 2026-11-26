@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_11_26_130000) do
+ActiveRecord::Schema[7.1].define(version: 2026_11_26_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -64,7 +64,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_26_130000) do
     t.integer "deprecated"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "replaced_by_id"
     t.index ["game_project_id"], name: "index_rule_modules_on_game_project_id"
+    t.index ["replaced_by_id"], name: "index_rule_modules_on_replaced_by_id"
   end
 
   create_table "rulebook_inclusions", force: :cascade do |t|
@@ -115,6 +117,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_26_130000) do
   add_foreign_key "playtest_sessions", "rulebook_versions"
   add_foreign_key "playtest_sessions", "users"
   add_foreign_key "rule_modules", "game_projects"
+  add_foreign_key "rule_modules", "rule_modules", column: "replaced_by_id"
   add_foreign_key "rulebook_inclusions", "rule_modules"
   add_foreign_key "rulebook_inclusions", "rulebook_versions"
   add_foreign_key "rulebook_versions", "game_projects"
