@@ -243,3 +243,36 @@ Requested work: commit and push. The Story 2 code and its log were already commi
 `git push origin main` updated `github.com:mikufan12345/csci3100-project.git` from `753c06c` to `15383d1`. The two commits on that push are `b213a97` and `15383d1`.
 
 GitHub Actions run 7 was `in_progress` when this entry was written: https://github.com/mikufan12345/csci3100-project/actions/runs/45600754597. It had not finished, so this entry does not record a pass or a failure. The local suite at `15383d1` was still red on the later slices: 47 RSpec examples with 13 failures, and 61 Cucumber scenarios with 23 failures.
+
+## 2026-11-26 — Story 3: arbiter triage, and BR4: archived rows are read-only
+
+Requested work: verify the red base state, then implement Story 3 (the arbiter triage list and status-only verdicts) together with Business Rule 4 (archived feedback and archived sessions are read-only for every role).
+
+Base state re-verified on this machine before any code changed. The system PostgreSQL 14 cluster was down and `sudo` asked for a password, so the suite ran against a user-local server: `initdb -D ~/pgdata -U user --auth=trust`, socket directory pointed at `~/.pgsock`, started with `pg_ctl -D ~/pgdata start`. Against that server:
+
+- `bin/rspec`: 47 examples, 13 failures. The 13 matched the Story 2 entry: the archived status change, the posted escalated priority, `requires a role`, the playtester triage-list 403, the arbiter verdict that keeps comments, six `Escalation` examples, and the two Business Rule 2 stamp examples.
+- `bundle exec cucumber`: 61 scenarios, 23 failed, 38 passed. The 23 were three archived-read-only, eight priority-escalation, two re-evaluation, one title search, and nine triage scenarios.
+- `bundle exec rake test:all` was not run as one command. The two commands it wraps were run separately.
+
+What was added:
+
+- `FeedbacksController#index` (new route `GET /feedbacks`): the studio's feedback, newest first, with optional `?status=` and `?severity=` filters using the word names. A playtester gets 403 from `authorize_role!(User::STUDIO_ADMIN, User::ARBITER)`; another studio's rows never appear because the list is scoped through `@studio.game_projects`.
+- `FeedbacksController#show` (new route `GET /feedbacks/:id`): studio-scoped, so a foreign id is a 404. Shows the immutable sentence, module, game, version, status, severity, and the player.
+- `FeedbacksController#update` now does status-only triage. Only `valid_bug` or `working_as_intended` are accepted; posted comments, severity, and priority are not assigned, so a tampered sentence and a posted `escalated` priority leave the row untouched. Once the session's version is archived, even an admin gets a 403 before any write.
+- `Feedback` carries the status/severity name maps (`STATUSES`, `SEVERITIES`, `TRIAGE_VERDICTS`) and an `archived?` check that reloads the version, so a row archived outside the in-memory association is still refused. A new update-time validation freezes every column of a row whose version is archived. The BR2 stamp is unaffected: it saves while the older version is still public.
+- `PlaytestSession` freezes `playtime_minutes` and `scenarios_completed` while its version is archived, on top of the existing play-gate freeze. `PlaytestSessionsController#update` now resolves the session studio-wide (an admin may correct any row in the studio, the owner their own) and renders 422 with the model errors instead of redirecting over a failed save.
+- `RulebookVersion` gained the `STATUS_DRAFT` / `STATUS_PUBLIC` / `STATUS_ARCHIVED` constants, used by the new checks.
+- Views: `feedbacks/index` (filter form, table, "No feedback" fallback) and `feedbacks/show` (read-only note plus a verdict form for arbiters and admins while the version is public). The layout links to the triage page for those two roles.
+
+Checks that were run:
+
+- `bundle exec cucumber features/triage_feedback.feature features/archived_feedback_readonly.feature`: 13 scenarios, 13 passed.
+- Full `bundle exec rspec`: 47 examples, 10 failures, exit 1. Down from 13: the playtester triage-list 403 and the arbiter verdict (comments kept) now pass, and `refuses a status change once the version is archived` passes. The 10 are `does not let a caller set escalated priority on a lone report`, `requires a role`, six `Escalation` examples, and the two Business Rule 2 stamp examples.
+- Full `bundle exec cucumber`: 61 scenarios, 11 failed, 50 passed, exit 1. All nine triage scenarios and all four archived-read-only scenarios pass. The 11 are eight priority-escalation, two re-evaluation, and the title search.
+- `bundle exec rake test:all` was not run as one command. The two commands it wraps were run separately, and both still exit 1 because the later slices are red.
+- Rack again printed `Status code :unprocessable_entity is deprecated`. The status is still 422.
+- No browser tool was available. The triage form and verdict form are plain server-rendered pages; the scenarios drove them with the rack_test driver and direct HTTP patches.
+
+The implementation commit is `75eb273`. Nothing was pushed. There is no Actions URL. `bin/*` still shows as modified because `core.autocrlf` is true. Those line-ending diffs were left out of the commit.
+
+Left undone: Business Rule 2's stamp, Business Rule 3 escalation (including the escalation report page), title search, the `requires a role` example, seeds, the README SHA write-up, and Render. `render.yaml` still does not point at managed Postgres. A posted priority on a lone report still stays 1 until the escalation service learns to ignore it.
