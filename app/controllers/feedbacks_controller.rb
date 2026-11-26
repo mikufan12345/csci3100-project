@@ -14,30 +14,72 @@ class FeedbacksController < ApplicationController
     end
   end
 
-  # Comments are not permitted. A posted sentence is applied only so the model
-  # can reject it. Status, severity, and priority are left for a later slice.
+  # Story 3: the triage list. Arbiters and admins see the studio's feedback;
+  # a playtester gets a 403. Optional ?status= and ?severity= filters use the
+  # word names from Feedback::STATUSES / Feedback::SEVERITIES.
+  def index
+    return unless authorize_role!(User::STUDIO_ADMIN, User::ARBITER)
+
+    @feedbacks = studio_feedback
+                 .includes(:rule_module, playtest_session: { rulebook_version: :game_project })
+    if params[:status].present?
+      status = Feedback::STATUSES.fetch(params[:status], nil)
+      return render plain: "unknown status", status: :unprocessable_entity if status.nil?
+
+      @feedbacks = @feedbacks.where(status: status)
+    end
+    if params[:severity].present?
+      severity = Feedback::SEVERITIES.fetch(params[:severity], nil)
+      return render plain: "unknown severity", status: :unprocessable_entity if severity.nil?
+
+      @feedbacks = @feedbacks.where(severity: severity)
+    end
+    @feedbacks = @feedbacks.order(created_at: :desc, id: :desc)
+  end
+
+  # Anyone in the studio may read a row; another studio's id is a 404.
+  def show
+    @feedback = studio_feedback.find(params[:id])
+  rescue ActiveRecord::RecordNotFound
+    render plain: "not found", status: :not_found
+  end
+
+  # Triage is a status-only write. Comments, severity, and priority are not
+  # permitted here: the playtester's sentence is byte-for-byte immutable and
+  # only the escalation service may set priority. BR4: once the version is
+  # archived, even an admin gets a 403.
   def update
-    @feedback = feedback_in_studio
+    return unless authorize_role!(User::STUDIO_ADMIN, User::ARBITER)
+
+    @feedback = studio_feedback.find(params[:id])
     return if @feedback.nil?
 
-    posted_comments = params.dig(:feedback, :comments)
-    @feedback.comments = posted_comments if params.fetch(:feedback, {}).key?(:comments)
-    if @feedback.save
+    if @feedback.archived?
+      render plain: "Archived feedback is read-only.", status: :forbidden
+      return
+    end
+
+    posted = params.dig(:feedback, :status).to_s
+    if Feedback::TRIAGE_VERDICTS.exclude?(posted)
+      render plain: "The verdict must be valid_bug or working_as_intended.", status: :unprocessable_entity
+      return
+    end
+
+    if @feedback.update(status: Feedback::STATUSES.fetch(posted))
       redirect_to game_project_path(@feedback.playtest_session.rulebook_version.game_project)
     else
       render plain: @feedback.errors.full_messages.join("\n"), status: :unprocessable_entity
     end
+  rescue ActiveRecord::RecordNotFound
+    render plain: "not found", status: :not_found
   end
 
   private
 
-  def feedback_in_studio
+  # Every feedback row reachable from the studio's games.
+  def studio_feedback
     Feedback.joins(playtest_session: { rulebook_version: :game_project })
-      .merge(@studio.game_projects)
-      .find(params[:id])
-  rescue ActiveRecord::RecordNotFound
-    render plain: "not found", status: :not_found
-    nil
+            .merge(@studio.game_projects)
   end
 
   def feedback_params

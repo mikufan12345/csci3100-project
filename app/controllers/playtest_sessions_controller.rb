@@ -18,10 +18,23 @@ class PlaytestSessionsController < ApplicationController
     end
   end
 
+  # The session's owner keeps their row while the rulebook is public; an
+  # admin may correct any row in the studio. BR4 blocks both once the
+  # version is archived (model validation).
   def update
-    @session = owned_session
-    @session.update(session_params)
-    redirect_to game_project_path(@session.rulebook_version.game_project)
+    @session = session_in_studio
+    return if @session.nil?
+
+    unless current_user.role == User::STUDIO_ADMIN || @session.user_id == current_user.id
+      render plain: "forbidden", status: :forbidden
+      return
+    end
+
+    if @session.update(session_params)
+      redirect_to game_project_path(@session.rulebook_version.game_project)
+    else
+      render plain: @session.errors.full_messages.join("\n"), status: :unprocessable_entity
+    end
   end
 
   private
@@ -33,8 +46,11 @@ class PlaytestSessionsController < ApplicationController
     nil
   end
 
-  def owned_session
-    current_user.playtest_sessions.joins(rulebook_version: :game_project).merge(@studio.game_projects).find(params[:id])
+  def session_in_studio
+    PlaytestSession.joins(rulebook_version: :game_project).merge(@studio.game_projects).find(params[:id])
+  rescue ActiveRecord::RecordNotFound
+    render plain: "not found", status: :not_found
+    nil
   end
 
   def session_params

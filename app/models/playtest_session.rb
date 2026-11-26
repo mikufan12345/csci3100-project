@@ -3,8 +3,9 @@ class PlaytestSession < ApplicationRecord
   belongs_to :rulebook_version
   has_many :feedbacks, dependent: :destroy
 
-  validate :public_version_in_the_players_studio
+  validate :public_version_in_the_players_studio, on: :create
   validate :freeze_recorded_play, on: :update
+  validate :freeze_archived_version, on: :update
 
   private
 
@@ -13,7 +14,7 @@ class PlaytestSession < ApplicationRecord
     version = rulebook_version
     return if version.nil?
 
-    unless version.status == 1
+    unless version.status == RulebookVersion::STATUS_PUBLIC
       errors.add(:rulebook_version, "must be the public rulebook")
     end
 
@@ -34,5 +35,18 @@ class PlaytestSession < ApplicationRecord
     if will_save_change_to_scenarios_completed?
       errors.add(:scenarios_completed, "is frozen once feedback has been submitted")
     end
+  end
+
+  # BR4: once the version is archived, the recorded play is history and no
+  # role may rewrite it. (Public versions stay editable until feedback
+  # exists, which freeze_recorded_play handles.)
+  def freeze_archived_version
+    return if rulebook_version.nil?
+    # reload: a fixture or a concurrent publish may have archived the version
+    # past the status cached on the in-memory association.
+    return unless rulebook_version.reload.status == RulebookVersion::STATUS_ARCHIVED
+    return unless will_save_change_to_playtime_minutes? || will_save_change_to_scenarios_completed?
+
+    errors.add(:playtime_minutes, "is frozen once its rulebook version is archived")
   end
 end

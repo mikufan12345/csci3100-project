@@ -1,0 +1,31 @@
+<h1>Feedback</h1>
+
+<p><%= @feedback.comments %></p>
+
+<table>
+  <tr><th>Module</th><td><%= @feedback.rule_module.title %></td></tr>
+  <tr><th>Game</th><td><%= @feedback.playtest_session.rulebook_version.game_project.title %></td></tr>
+  <tr><th>Version</th><td>
+    <%= @feedback.playtest_session.rulebook_version.version_number %>
+    (<%= @feedback.archived? ? "archived" : "public" %>)
+  </td></tr>
+  <tr><th>Status</th><td><%= @feedback.status_name %></td></tr>
+  <tr><th>Severity</th><td><%= @feedback.severity_name %></td></tr>
+  <tr><th>Logged by</th><td><%= @feedback.playtest_session.user.email %></td></tr>
+</table>
+
+<% if current_user && [User::STUDIO_ADMIN, User::ARBITER].include?(current_user.role) && !@feedback.archived? %>
+  <h2>Verdict</h2>
+  <%= form_with url: feedback_path(@feedback), method: :patch, data: { turbo: false } do %>
+    <label for="feedback_status">Status</label>
+    <select name="feedback[status]" id="feedback_status">
+      <option value="">— choose a verdict —</option>
+      <% Feedback::TRIAGE_VERDICTS.each do |verdict| %>
+        <option value="<%= verdict %>" <%= "selected" if @feedback.status == Feedback::STATUSES.fetch(verdict) %>><%= verdict %></option>
+      <% end %>
+    </select>
+    <%= submit_tag "Set verdict" %>
+  <% end %>
+<% elsif @feedback.archived? %>
+  <p>This feedback is read-only: its rulebook version is archived.</p>
+<% end %>

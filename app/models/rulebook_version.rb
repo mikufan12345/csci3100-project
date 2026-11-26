@@ -2,6 +2,11 @@
 # RuleModules in force at publish time (statuses: draft/public/archived, at
 # most one public per game).
 class RulebookVersion < ApplicationRecord
+  # Version status (rulebook_versions.status, integer)
+  STATUS_DRAFT    = 0
+  STATUS_PUBLIC   = 1
+  STATUS_ARCHIVED = 2
+
   belongs_to :game_project
   has_many :rulebook_inclusions, dependent: :destroy
   has_many :rule_modules, through: :rulebook_inclusions
@@ -16,7 +21,7 @@ class RulebookVersion < ApplicationRecord
   def one_public_version
     return if game_project.nil?
 
-    others = game_project.rulebook_versions.where(status: 1)
+    others = game_project.rulebook_versions.where(status: STATUS_PUBLIC)
     others = others.where.not(id: id) if persisted?
     return unless others.exists?
 

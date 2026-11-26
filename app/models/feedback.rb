@@ -1,4 +1,27 @@
 class Feedback < ApplicationRecord
+  # Feedback status (feedbacks.status, integer)
+  STATUS_UNREVIEWED         = 0
+  STATUS_VALID_BUG          = 1
+  STATUS_WORKING_AS_INTENDED = 2
+  STATUS_RE_EVALUATION      = 3
+
+  STATUSES = {
+    "unreviewed" => STATUS_UNREVIEWED,
+    "valid_bug" => STATUS_VALID_BUG,
+    "working_as_intended" => STATUS_WORKING_AS_INTENDED,
+    "re_evaluation" => STATUS_RE_EVALUATION
+  }.freeze
+
+  # Severity (feedbacks.severity, integer)
+  SEVERITY_LOW    = 0
+  SEVERITY_MEDIUM = 1
+  SEVERITY_HIGH   = 2
+
+  SEVERITIES = { "low" => SEVERITY_LOW, "medium" => SEVERITY_MEDIUM, "high" => SEVERITY_HIGH }.freeze
+
+  # The only verdicts a rules arbiter (or admin) may post on triage.
+  TRIAGE_VERDICTS = %w[valid_bug working_as_intended].freeze
+
   belongs_to :playtest_session
   belongs_to :rule_module
 
@@ -13,6 +36,27 @@ class Feedback < ApplicationRecord
   validate :session_meets_play_gate
   validate :module_included_in_version
   validate :freeze_comments, on: :update
+  validate :freeze_archived_version, on: :update
+
+  def status_name
+    self.class::STATUSES.key(status)
+  end
+
+  def severity_name
+    self.class::SEVERITIES.key(severity)
+  end
+
+  # BR4: feedback on an archived version is read-only for everyone.
+  # The BR2 re-evaluation stamp runs while the older version is still
+  # public, so it is never blocked by this check.
+  def archived?
+    version = playtest_session&.rulebook_version
+    return false if version.nil?
+
+    # reload: a fixture or a concurrent publish may have moved the version
+    # past the status cached on the in-memory association.
+    version.reload.status == RulebookVersion::STATUS_ARCHIVED
+  end
 
   private
 
@@ -34,6 +78,20 @@ class Feedback < ApplicationRecord
     return unless will_save_change_to_comments?
 
     errors.add(:comments, "cannot change after submission")
+  end
+
+  # BR4: once the session's version is archived, no column of the row may
+  # change, for any role.
+  def freeze_archived_version
+    return unless archived?
+    return unless any_will_change?
+
+    errors.add(:status, "is frozen while its rulebook version is archived")
+  end
+
+  def any_will_change?
+    %i[comments status severity priority rule_module_id playtest_session_id escalation_id]
+      .any? { |column| send("will_save_change_to_#{column}?") }
   end
 
   # BR1: the session itself may be short. Feedback may not.
